@@ -1,9 +1,11 @@
 #!/usr/bin/env bash
 
 CAMEL_PATH=''
-TSHARK_FILTER="(camel.eventTypeBCSM == 2 and camel.eventTypeBCSM == 17) or \
-               (camel.eventTypeBCSM == 2 and camel.eventTypeBCSM == 9) and \
-               camel.local == 44"
+#TSHARK_FILTER="(camel.eventTypeBCSM == 2 and camel.eventTypeBCSM == 17) or \
+#               (camel.eventTypeBCSM == 2 and camel.eventTypeBCSM == 9) and \
+#               camel.local == 44"
+
+TSHARK_FILTER="camel.eventTypeBCSM == 2"
 OUTPUT_PATH=''
 
 # print help, error string and exit
@@ -76,13 +78,16 @@ function parse_camel() {
                                      }
     for file in ${camel_raw_files} ; do
         file_bn=$(basename "${file}")
+#        tshark -r "${file}" -Y "${TSHARK_FILTER}" -n -T fields -E separator=, -e frame.time_epoch \
+#                                                                              -e e164.calling_party_number.digits \
+#                                                                              -e e164.called_party_number.digits \
+#                                                                              -e gsm_a.dtap.cld_party_bcd_num \
+#                                                                              -e camel.callReferenceNumber \
+#                                                                              -e camel.callAttemptElapsedTimeValue \
+#                                                                              -e camel.releaseCauseValue > "${OUTPUT_PATH}/${file_bn}.txt"
         tshark -r "${file}" -Y "${TSHARK_FILTER}" -n -T fields -E separator=, -e frame.time_epoch \
                                                                               -e e164.calling_party_number.digits \
-                                                                              -e e164.called_party_number.digits \
-                                                                              -e gsm_a.dtap.cld_party_bcd_num \
-                                                                              -e camel.callReferenceNumber \
-                                                                              -e camel.callAttemptElapsedTimeValue \
-                                                                              -e camel.releaseCauseValue > "${OUTPUT_PATH}/${file_bn}.txt"
+                                                                              -e gsm_a.dtap.cld_party_bcd_num > "${OUTPUT_PATH}/${file_bn}.txt"
     done
 }
 
