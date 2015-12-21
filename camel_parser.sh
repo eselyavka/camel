@@ -79,6 +79,7 @@ function parse_camel() {
         tshark -r "${file}" -Y "${TSHARK_FILTER}" -n -T fields -E separator=, -e frame.time_epoch \
                                                                               -e e164.calling_party_number.digits \
                                                                               -e e164.called_party_number.digits \
+                                                                              -e gsm_a.dtap.cld_party_bcd_num \
                                                                               -e camel.callReferenceNumber \
                                                                               -e camel.callAttemptElapsedTimeValue \
                                                                               -e camel.releaseCauseValue > "${OUTPUT_PATH}/${file_bn}.txt"

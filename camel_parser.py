@@ -42,6 +42,7 @@ def normalize_number(msisdn):
             COUNTERS['no_need_normalization'] += 1
     elif len(msisdn) == 10:
         msisdn = '7' + msisdn
+        COUNTERS['normalized_numbers'] += 1
     else:
         LOG.debug("Bad number found: %s", msisdn)
         COUNTERS['bad_numbers'] += 1
@@ -53,11 +54,13 @@ def read_text_dump(filename):
     with open(filename, 'r') as fh:
         for line in fh:
             arr = line.split(',')
-            if len(arr) == 6:
-                if arr[2]:
-                    normalized_numbers=list(map(normalize_number, [arr[1], arr[2]]))
+            if len(arr) == 7:
+                numbers = arr[1:4]
+                if '' in numbers:
+                    numbers.remove('')
+                    normalized_numbers=list(map(normalize_number, numbers))
                     COUNTERS['good_record'] += 1
-                    yield ','.join([str(int(arr[0] * 1000)), ','.join(normalized_numbers), ','.join(arr[3:len(arr)-1]), str(extract_release_code(arr[len(arr)-1]))])
+                    yield ','.join([arr[0], ','.join(normalized_numbers), ','.join(arr[4:len(arr)-1]), str(extract_release_code(arr[len(arr)-1]))])
                 else:
                     COUNTERS['bad_record'] += 1
             else:
@@ -67,9 +70,8 @@ def database_upload(mem_file):
     conn = psycopg2.connect("dbname=camel user=camel host=localhost password=camel")
     cur = conn.cursor()
     cur.copy_from(mem_file, 'camel_data', sep=',')
-    #cur.execute("select * from camel_data;")
-    #cur.fetchall()
     cur.close()
+    conn.commit()
     conn.close()
 
 def main():
@@ -80,7 +82,7 @@ def main():
         mem_file.seek(0)
         database_upload(mem_file)
         mem_file.close()
-        #print COUNTERS
+        print COUNTERS
     except IndexError:
         LOG.error("Please specify file to read")
 
