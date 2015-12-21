@@ -53,14 +53,13 @@ def read_text_dump(filename):
 
     with open(filename, 'r') as fh:
         for line in fh:
-            arr = line.split(',')
-            if len(arr) == 7:
-                numbers = arr[1:4]
-                if '' in numbers:
-                    numbers.remove('')
-                    normalized_numbers=list(map(normalize_number, numbers))
+            arr = line.strip().split(',')
+            if len(arr) == 3:
+                if '' not in arr:
+                    msisdns = arr[1:]
+                    normalized_numbers=list(map(normalize_number, msisdns))
                     COUNTERS['good_record'] += 1
-                    yield ','.join([arr[0], ','.join(normalized_numbers), ','.join(arr[4:len(arr)-1]), str(extract_release_code(arr[len(arr)-1]))])
+                    yield ','.join([arr[0], ','.join(normalized_numbers)])
                 else:
                     COUNTERS['bad_record'] += 1
             else:
@@ -69,7 +68,7 @@ def read_text_dump(filename):
 def database_upload(mem_file):
     conn = psycopg2.connect("dbname=camel user=camel host=localhost password=camel")
     cur = conn.cursor()
-    cur.copy_from(mem_file, 'camel_data', sep=',')
+    cur.copy_from(mem_file, 'camel_data', sep=',', columns=('idp_recieved', 'calling_number', 'called_number'))
     cur.close()
     conn.commit()
     conn.close()

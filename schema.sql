@@ -34,7 +34,7 @@ SET default_with_oids = false;
 --
 
 CREATE TABLE camel_data (
-    call_end double precision,
+    idp_recieved double precision,
     calling_number text,
     called_number text,
     call_id text,

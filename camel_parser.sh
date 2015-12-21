@@ -5,7 +5,7 @@ CAMEL_PATH=''
 #               (camel.eventTypeBCSM == 2 and camel.eventTypeBCSM == 9) and \
 #               camel.local == 44"
 
-TSHARK_FILTER="camel.eventTypeBCSM == 2"
+TSHARK_FILTER='camel.eventTypeBCSM == 2 and frame.protocols == "eth:ip:sctp:m3ua:sccp:tcap:camel"'
 OUTPUT_PATH=''
 
 # print help, error string and exit
