@@ -6,9 +6,9 @@ import logging
 import psycopg2
 import StringIO
 
-COUNTERS = { 'bad_record':0, 'good_record':0,
+COUNTERS = { 'bad_record_too_long':0, 'bad_record_too_short':0, 'good_record':0,
              'normalized_numbers':0, 'no_need_normalization':0,
-             'bad_numbers':0, 'bad_release_code': 0
+             'bad_numbers':0
            }
 
 logging.basicConfig(
@@ -19,7 +19,7 @@ logging.basicConfig(
         '(%(process)d)',
         '%(message)s'
     ]),
-    level=logging.ERROR
+    level=logging.WARNING
 )
 
 def extract_release_code(release_code_bytes):
@@ -48,39 +48,56 @@ def normalize_number(msisdn):
         COUNTERS['bad_numbers'] += 1
     return msisdn
 
-def read_text_dump(filename):
+def read_text_dump(text_file):
     global COUNTERS
 
-    with open(filename, 'r') as fh:
+    dirname=os.path.dirname(text_file)
+    filename_bn=os.path.basename(text_file)
+
+    if os.path.exists(dirname + '/.' + filename_bn):
+        LOG.warning("Data for file %s, already uploaded", text_file)
+
+    with open(text_file, 'r') as fh:
         for line in fh:
             arr = line.strip().split(',')
-            if len(arr) == 3:
+            if len(arr) == 6:
                 if '' not in arr:
-                    msisdns = arr[1:]
+                    msisdns = arr[1:3]
                     normalized_numbers=list(map(normalize_number, msisdns))
                     COUNTERS['good_record'] += 1
-                    yield ','.join([arr[0], ','.join(normalized_numbers)])
+                    yield ','.join([arr[0], ','.join(normalized_numbers), ','.join(arr[3:])])
                 else:
-                    COUNTERS['bad_record'] += 1
+                    COUNTERS['bad_record_too_short'] += 1
             else:
-                COUNTERS['bad_record'] += 1
+                COUNTERS['bad_record_too_long'] += 1
 
 def database_upload(mem_file):
     conn = psycopg2.connect("dbname=camel user=camel host=localhost password=camel")
     cur = conn.cursor()
-    cur.copy_from(mem_file, 'camel_data', sep=',', columns=('idp_recieved', 'calling_number', 'called_number'))
+    cur.copy_from(mem_file, 'camel_data', sep=',')
     cur.close()
     conn.commit()
     conn.close()
 
 def main():
     try:
+        text_file = sys.argv[1]
+
+        dirname=os.path.dirname(text_file)
+        filename_bn=os.path.basename(text_file)
+
+        if os.path.exists(dirname + '/.' + filename_bn):
+            LOG.warning("Data for file %s, already uploaded", text_file)
+            sys.exit(1)
+
         mem_file = StringIO.StringIO()
         for record in read_text_dump(sys.argv[1]):
             mem_file.write(record + "\n")
         mem_file.seek(0)
         database_upload(mem_file)
         mem_file.close()
+        with open(dirname + '/.' + filename_bn, 'a'):
+            pass
         print COUNTERS
     except IndexError:
         LOG.error("Please specify file to read")

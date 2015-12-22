@@ -1,0 +1,1 @@
+CREATE ROLE camel LOGIN PASSWORD 'camel';

@@ -10,6 +10,24 @@ SET check_function_bodies = false;
 SET client_min_messages = warning;
 
 --
+-- Name: camel; Type: DATABASE; Schema: -; Owner: camel
+--
+
+CREATE DATABASE camel WITH TEMPLATE = template0 ENCODING = 'UTF8' LC_COLLATE = 'en_US.UTF-8' LC_CTYPE = 'en_US.UTF-8';
+
+
+ALTER DATABASE camel OWNER TO camel;
+
+\connect camel
+
+SET statement_timeout = 0;
+SET lock_timeout = 0;
+SET client_encoding = 'UTF8';
+SET standard_conforming_strings = on;
+SET check_function_bodies = false;
+SET client_min_messages = warning;
+
+--
 -- Name: plpgsql; Type: EXTENSION; Schema: -; Owner: 
 --
 
@@ -37,9 +55,9 @@ CREATE TABLE camel_data (
     idp_recieved double precision,
     calling_number text,
     called_number text,
-    call_id text,
-    duration smallint,
-    release_code smallint
+    event_type_bscm smallint,
+    service_key smallint,
+    ext_basic_service_code smallint
 );
 
 

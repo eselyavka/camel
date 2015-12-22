@@ -5,7 +5,7 @@ CAMEL_PATH=''
 #               (camel.eventTypeBCSM == 2 and camel.eventTypeBCSM == 9) and \
 #               camel.local == 44"
 
-TSHARK_FILTER='camel.eventTypeBCSM == 2 and frame.protocols == "eth:ip:sctp:m3ua:sccp:tcap:camel"'
+TSHARK_FILTER='(camel.eventTypeBCSM==2 and camel.serviceKey == 2 and camel.local == 0 and not camel.eventTypeSMS)'
 OUTPUT_PATH=''
 
 # print help, error string and exit
@@ -87,8 +87,24 @@ function parse_camel() {
 #                                                                              -e camel.releaseCauseValue > "${OUTPUT_PATH}/${file_bn}.txt"
         tshark -r "${file}" -Y "${TSHARK_FILTER}" -n -T fields -E separator=, -e frame.time_epoch \
                                                                               -e e164.calling_party_number.digits \
-                                                                              -e gsm_a.dtap.cld_party_bcd_num > "${OUTPUT_PATH}/${file_bn}.txt"
+                                                                              -e gsm_a.dtap.cld_party_bcd_num \
+                                                                              -e camel.eventTypeBCSM \
+                                                                              -e camel.serviceKey \
+                                                                              -e camel.ext_basicServiceCode > "${OUTPUT_PATH}/${file_bn}.txt"
+        db_upload "${OUTPUT_PATH}/${file_bn}.txt"
     done
+}
+
+# upload parsed logs into DB
+# Globals:
+#   None
+# Arguments:
+#   $1 - file which should be uploaded to DB
+# Returns:
+#   None
+function db_upload() {
+    local file="$1"
+    python camel_parser.py "${file}"
 }
 
 parse_command_line_arg "$@"
