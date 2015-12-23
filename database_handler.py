@@ -30,7 +30,7 @@ def database_request(request_type, interval='1800'):
         conn.commit()
     elif request_type in ['all', 'changedir']:
         if request_type == 'changedir':
-            sql_file='changedir.sql'
+            sql_file='filter_changedir.sql'
         else:
             sql_file='all_except_changedir.sql'
         tmp_file = tempfile.NamedTemporaryFile(mode='w+',delete=False)
