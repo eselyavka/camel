@@ -28,10 +28,14 @@ def database_request(request_type, interval='1800'):
         print cur.fetchone()[0]
         cur.close()
         conn.commit()
-    elif request_type == 'all':
+    elif request_type in ['all', 'changedir']:
+        if request_type == 'changedir':
+            sql_file='changedir.sql'
+        else:
+            sql_file='all_except_changedir.sql'
         tmp_file = tempfile.NamedTemporaryFile(mode='w+',delete=False)
         LOG.info("Will write file to %s", tmp_file.name)
-        with open('all_except_changedir.sql', 'r') as fh:
+        with open(sql_file, 'r') as fh:
             sql = fh.read()
         cur = conn.cursor()
         cur.execute(sql.replace('@REPLACEMENT@', interval))
@@ -41,11 +45,22 @@ def database_request(request_type, interval='1800'):
         conn.commit()
         tmp_file.close()
     else:
-        LOG.ERROR("Request %s type is not supported", request_type)
+        LOG.error("Request %s type is not supported", request_type)
     conn.close()
 
 def main():
-    database_request(sys.argv[1], sys.argv[2])
+    acceptable_arguments = ['all', 'count', 'changedir']
+
+    try:
+        if sys.argv[1] in acceptable_arguments:
+            if int(sys.argv[2]):
+                database_request(sys.argv[1], sys.argv[2])
+        else:
+            LOG.error("Not acceptable argument")
+    except IndexError:
+        LOG.error("Not enough arguments")
+    except ValueError:
+        LOG.error("Please specify interval as a number")
 
 if __name__=='__main__':
     LOG = logging.getLogger(os.path.basename(sys.argv[0]))
