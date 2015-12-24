@@ -5,6 +5,7 @@ import os
 import logging
 import psycopg2
 import tempfile
+import camel_queries as cq
 
 logging.basicConfig(
     format='\t'.join([
@@ -18,29 +19,31 @@ logging.basicConfig(
 )
 
 def database_request(request_type, interval='1800'):
-    conn = psycopg2.connect("dbname=camel user=camel host=localhost password=camel")
+    conn = psycopg2.connect("dbname=camel \
+                             user=camel \
+                             host=localhost \
+                             password=camel")
     if request_type == 'count':
-        with open('count_changedir.sql', 'r') as fh:
-            sql = fh.read()
-
         cur = conn.cursor()
-        cur.execute(sql.replace('@REPLACEMENT@', interval))
+        cur.execute(cq.COUNT_CHANGEDIR.replace('@REPLACEMENT@', interval))
         print cur.fetchone()[0]
         cur.close()
         conn.commit()
     elif request_type in ['all', 'changedir']:
         if request_type == 'changedir':
-            sql_file='filter_changedir.sql'
+            sql = cq.FILTER_CHANGEDIR
         else:
-            sql_file='all_except_changedir.sql'
-        tmp_file = tempfile.NamedTemporaryFile(mode='w+',delete=False)
+            sql = cq.ALL_EXCEPT_CHANGEDIR
+        tmp_file = tempfile.NamedTemporaryFile(mode='w+', delete=False)
         LOG.info("Will write file to %s", tmp_file.name)
-        with open(sql_file, 'r') as fh:
-            sql = fh.read()
         cur = conn.cursor()
         cur.execute(sql.replace('@REPLACEMENT@', interval))
         for data in cur:
-            tmp_file.write(','.join([str(data[0]), ','.join(data[1:3]), str(data[3]), str(data[4]), str(data[5])]) + "\n")
+            tmp_file.write(','.join([str(data[0]),
+                           ','.join(data[1:3]),
+                           str(data[3]),
+                           str(data[4]),
+                           str(data[5])]) + "\n")
         cur.close()
         conn.commit()
         tmp_file.close()
@@ -62,6 +65,6 @@ def main():
     except ValueError:
         LOG.error("Please specify interval as a number")
 
-if __name__=='__main__':
+if __name__ == '__main__':
     LOG = logging.getLogger(os.path.basename(sys.argv[0]))
     main()

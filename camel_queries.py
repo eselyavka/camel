@@ -1,4 +1,4 @@
-WITH changedir AS (WITH exclude_repeated_calls AS (WITH all_changedir AS (WITH number_grouping AS
+CHANGE_DIR = """WITH changedir AS (WITH exclude_repeated_calls AS (WITH all_changedir AS (WITH number_grouping AS
                                                                             (SELECT DISTINCT to_timestamp(t1.idp_recieved) AS ce_ts,
                                                                                              t1.calling_number,
                                                                                              t1.called_number,
@@ -55,3 +55,39 @@ FROM changedir WINDOW w AS (PARTITION BY abs(group_num)
                             ORDER BY ce_ts)
 ORDER BY ce_ts,
          calling_number
+"""
+
+COUNT_CHANGEDIR = """WITH count_changedir AS (""" + CHANGE_DIR + """)
+SELECT count(*)
+FROM count_changedir
+WHERE deny_period
+"""
+
+ALL_EXCEPT_CHANGEDIR = """WITH all_except_changedir AS (""" + CHANGE_DIR + """)
+SELECT to_timestamp(cd.idp_recieved),
+       cd.calling_number,
+       cd.called_number,
+       cd.event_type_bscm,
+       cd.service_key,
+       cd.ext_basic_service_code
+FROM camel_data cd
+EXCEPT
+SELECT ex.ce_ts,
+       ex.calling_number,
+       ex.called_number,
+       ex.event_type_bscm,
+       ex.service_key,
+       ex.ext_basic_service_code
+FROM all_except_changedir ex
+WHERE ex.deny_period
+"""
+FILTER_CHANGEDIR = """WITH filter_changedir AS (""" + CHANGE_DIR + """)
+SELECT ce_ts,
+       calling_number,
+       called_number,
+       event_type_bscm,
+       service_key,
+       ext_basic_service_code
+FROM filter_changedir
+WHERE deny_period
+"""

@@ -99,7 +99,7 @@ function parse_camel() {
 # Globals:
 #   None
 # Arguments:
-#   $1 - file which should be uploaded to DB
+#   $1 - file, which should be uploaded to DB
 # Returns:
 #   None
 function db_upload() {

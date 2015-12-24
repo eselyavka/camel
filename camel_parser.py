@@ -6,9 +6,9 @@ import logging
 import psycopg2
 import StringIO
 
-COUNTERS = { 'bad_record_too_long':0, 'bad_record_too_short':0, 'good_record':0,
-             'normalized_numbers':0, 'no_need_normalization':0,
-             'bad_numbers':0
+COUNTERS = {'bad_record_too_long':0, 'bad_record_too_short':0, 'good_record':0,
+            'normalized_numbers':0, 'no_need_normalization':0,
+            'bad_numbers':0, 'bad_release_code':0
            }
 
 logging.basicConfig(
@@ -19,7 +19,7 @@ logging.basicConfig(
         '(%(process)d)',
         '%(message)s'
     ]),
-    level=logging.WARNING
+    level=logging.INFO
 )
 
 def extract_release_code(release_code_bytes):
@@ -35,7 +35,7 @@ def normalize_number(msisdn):
     if len(msisdn) == 11:
         if msisdn.startswith('8', 0, 1):
             LOG.debug("Perform normalization %s->%s", msisdn, '7' + msisdn[1:])
-            msisdn='7' + msisdn[1:]
+            msisdn = '7' + msisdn[1:]
             COUNTERS['normalized_numbers'] += 1
         else:
             LOG.debug("No need normalization for %s", msisdn)
@@ -49,30 +49,28 @@ def normalize_number(msisdn):
     return msisdn
 
 def read_text_dump(text_file):
-    global COUNTERS
-
-    dirname=os.path.dirname(text_file)
-    filename_bn=os.path.basename(text_file)
-
-    if os.path.exists(dirname + '/.' + filename_bn):
-        LOG.warning("Data for file %s, already uploaded", text_file)
-
-    with open(text_file, 'r') as fh:
-        for line in fh:
+    with open(text_file, 'r') as file_handle:
+        for line in file_handle:
             arr = line.strip().split(',')
             if len(arr) == 6:
                 if '' not in arr:
                     msisdns = arr[1:3]
-                    normalized_numbers=list(map(normalize_number, msisdns))
+                    normalized_numbers = [normalize_number(x) for x in msisdns]
                     COUNTERS['good_record'] += 1
-                    yield ','.join([arr[0], ','.join(normalized_numbers), ','.join(arr[3:])])
+                    yield (','.join([arr[0],
+                          ','.join(normalized_numbers),
+                          ','.join(arr[3:])])
+                          )
                 else:
                     COUNTERS['bad_record_too_short'] += 1
             else:
                 COUNTERS['bad_record_too_long'] += 1
 
 def database_upload(mem_file):
-    conn = psycopg2.connect("dbname=camel user=camel host=localhost password=camel")
+    conn = psycopg2.connect("dbname=camel \
+                             user=camel \
+                             host=localhost \
+                             password=camel")
     cur = conn.cursor()
     cur.copy_from(mem_file, 'camel_data', sep=',')
     cur.close()
@@ -83,11 +81,13 @@ def main():
     try:
         text_file = sys.argv[1]
 
-        dirname=os.path.dirname(text_file)
-        filename_bn=os.path.basename(text_file)
+        dirname = os.path.dirname(text_file)
+        filename_bn = os.path.basename(text_file)
 
         if os.path.exists(dirname + '/.' + filename_bn):
-            LOG.warning("Data for file %s, already uploaded", text_file)
+            LOG.warning("Data for file %s, already uploaded,\
+                         please delete %s, in case of reupload",
+                         text_file, dirname + '/.' + filename_bn)
             sys.exit(1)
 
         mem_file = StringIO.StringIO()
@@ -98,10 +98,10 @@ def main():
         mem_file.close()
         with open(dirname + '/.' + filename_bn, 'a'):
             pass
-        print COUNTERS
+        LOG.info("Counters: %s", str(COUNTERS))
     except IndexError:
         LOG.error("Please specify file to read")
 
-if __name__=='__main__':
+if __name__ == '__main__':
     LOG = logging.getLogger(os.path.basename(sys.argv[0]))
     main()
